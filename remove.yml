@@ -1,0 +1,97 @@
+﻿---
+- name: Remove Zero Networks
+  hosts: all
+  tasks:
+    - name: Print playbook version
+      debug:
+        msg: Playbook version 1.5.1
+      run_once: true
+
+    - name: Print system information
+      register: hostnamectl
+      shell:
+        cmd: "hostnamectl"
+
+    - debug:
+        var: hostnamectl.stdout_lines
+
+    - name: Check for Zero Networks user home dir
+      stat:
+        path: "/home/{{ zn_user }}"
+      register: home_dir
+
+    - name: Lock Zero Networks user password
+      when: home_dir.stat.exists
+      ignore_errors: true
+      user:
+        name: "{{ zn_user }}"
+        state: present
+        password_lock: yes
+
+    - name: Remove SSH keys
+      ignore_errors: true
+      file:
+        path: "/home/{{ zn_user }}/.ssh/authorized_keys"
+        state: absent
+
+    - name: Stop Zero Networks process
+      when: home_dir.stat.exists
+      shell:
+        cmd: "killall -9 -u {{ zn_user }} 2> /dev/null || true"
+
+    - name: Remove Zero Networks user from sudoers
+      ignore_errors: true
+      lineinfile:
+        dest: /etc/sudoers
+        state: absent
+        regexp: "^{{ zn_user }} "
+
+    - name: Remove rsyslog configuration
+      ignore_errors: true
+      file:
+        path: "/etc/rsyslog.d/10-zn.conf"
+        state: absent
+
+    - name: Remove logrotate configuration
+      ignore_errors: true
+      file:
+        path: "/etc/logrotate.d/zn"
+        state: absent
+
+    - name: Disable Zero Networks systemd service
+      ignore_errors: yes
+      shell:
+        cmd: "systemctl disable zn.service"
+
+    - name: Remove service configuration
+      ignore_errors: true
+      file:
+        dest: /etc/systemd/system/zn.service
+        state: absent
+
+    - name: Remove ipv4 rules file
+      file:
+        path: "/etc/iptables/zn-rules.ipv4"
+        state: absent
+
+    - name: Check removal script
+      stat:
+        path: "/home/{{ zn_user }}/.zn-internal/scripts/remove.sh"
+      register: removal_script
+
+    - name: Remove ZeroNetworks monitoring
+      ignore_errors: true
+      when: removal_script.stat.exists
+      shell:
+        cmd: "/home/{{ zn_user }}/.zn-internal/scripts/remove.sh"
+
+    - name: Delete Zero Networks user
+      retries: 3
+      delay: 5
+      register: result
+      until: result is not failed
+      user:
+        name: "{{ zn_user }}"
+        state: absent
+        remove: yes
+        force: yes

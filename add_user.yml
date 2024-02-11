@@ -1,0 +1,48 @@
+---
+- name: Add user
+  ignore_unreachable: true
+  hosts: all
+  tasks:
+    - name: Create user
+      user:
+        name: "{{ zn_user }}"
+        password: "{{ zn_user_password | password_hash('sha512') }}"
+        state: present
+        createhome: yes
+
+    - name: Check if /etc/sudoers.d/ exists
+      stat:
+        path: /etc/sudoers.d/
+      register: sudoers_d
+
+    - name: Ensure /etc/sudoers.d/zn exists
+      file:
+        path: /etc/sudoers.d/zn
+        state: touch
+        mode: '0440'
+      become: true
+      when: sudoers_d.stat.exists
+
+    - name: Add user to sudoers.d if directory exists
+      lineinfile:
+        dest: "/etc/sudoers.d/zn"
+        state: present
+        line: "{{ zn_user }} ALL=(ALL) NOPASSWD: ALL"
+      become: true
+      when: sudoers_d.stat.exists
+      
+    - name: Add user to sudoers if sudoers.d does not exist
+      lineinfile:
+        dest: /etc/sudoers
+        state: present
+        regexp: "^{{ zn_user }} "
+        line: "{{ zn_user }} ALL=(ALL) NOPASSWD: ALL"
+      become: true
+      when: not sudoers_d.stat.exists
+
+    - name: Set public key to allow SSH
+      when: public_key is defined and public_key != ''
+      authorized_key:
+        user: "{{ zn_user }}"
+        state: present
+        key: "{{ public_key }}"
