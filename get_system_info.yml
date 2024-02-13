@@ -1,0 +1,110 @@
+---
+- name: Gather System Information
+  hosts: all
+  gather_facts: no
+
+  vars:
+    get_zlib_ver_cmd: import zlib; print('Compiled version:', zlib.ZLIB_VERSION, 'Runtime version:', getattr(zlib, 'ZLIB_RUNTIME_VERSION', 'Not available'))
+   
+  tasks:
+        
+    - name: Run hostnamectl
+      shell: hostname
+      register: hostnamectl
+      ignore_errors: yes
+
+    - name: Collect Linux OS name
+      shell: ([ -f /etc/redhat-release ] && cat /etc/redhat-release) || ls /etc | grep -e '-release$' | xargs -I '{}' cat '/etc/{}'
+      register: os_name
+      ignore_errors: yes
+      
+    - name: Collect Linux hostname
+      shell: uname -n
+      register: hostname
+      ignore_errors: yes
+
+    - name: Print Linux kernel info
+      shell: echo "$(uname -s) $(uname -r)"
+      register: kernel_info
+      ignore_errors: yes
+
+    - name: Check Python2 version
+      shell: python2.7 -V  || python2 -V  || python -V 
+      register: python2_version
+      ignore_errors: yes
+
+    - name: Check Python3 version
+      shell: python3 --version
+      register: python3_version
+      ignore_errors: yes
+
+    - name: Print iptables legacy version
+      shell: iptables-legacy --version
+      register: iptables_legacy_version
+      ignore_errors: yes
+
+    - name: Print iptables version
+      shell: iptables --version
+      register: iptables_version
+      ignore_errors: yes
+
+    - name: Check for iptables xtables .so files
+      shell: ldd "$(which iptables-legacy)" || ldd "$(which iptables)"
+      register: xtables_files
+      ignore_errors: yes
+
+    - name: Check rsyslog version
+      shell: rsyslogd -v
+      register: rsyslog_version
+      ignore_errors: yes
+
+    - name: Check logrotate version
+      shell: logrotate --version 
+      register: logrotate_version
+      ignore_errors: yes
+
+    - name: Check zlib version
+      shell: python -c "{{ get_zlib_ver_cmd }}"  || python3 -c "{{ get_zlib_ver_cmd }}"
+      register: zlib_version
+      ignore_errors: yes
+
+    - name: Check SSHD server version and encryption methods
+      shell: ssh -V; sshd -T
+      register: sshd_info
+      ignore_errors: yes
+
+    - name: Get Pid 1 info
+      shell: ls -l /proc/1/exe
+      register: pid_1_exe
+      ignore_errors: yes
+
+    - name: Check if pip exists for Python2
+      shell: python2 -m pip --version
+      register: pip2_exists
+      ignore_errors: yes
+
+    - name: Check if pip exists for Python3
+      shell: python3 -m pip --version
+      register: pip3_exists
+      ignore_errors: yes
+
+    - name: Display gathered information
+      debug:
+        msg:
+          - "Hostnamectl - stdout {{: {{ hostnamectl.stdout }} stderr: {{ hostnamectl.stderr }}"
+          - "OS Name - stdout {{: {{ os_name.stdout }} stderr: {{ os_name.stderr }}"
+          - "Hostname - stdout {{:  {{ hostname.stdout }} stderr: {{ hostname.stderr }}"
+          - "Kernel Info - stdout {{: {{ kernel_info.stdout }} stderr: {{ kernel_info.stderr }}"
+          - "Python2 Version - stdout {{: {{ python2_version.stdout }} stderr: {{ python2_version.stderr }}"
+          - "Python3 Version - stdout {{: {{ python3_version.stdout }} stderr: {{ python3_version.stderr }}"
+          - "Iptables Version - stdout {{: {{ iptables_version.stdout }} stderr: {{ iptables_version.stderr }}"
+          - "Iptables Legacy Version - stdout {{: {{ iptables_legacy_version.stdout }} stderr: {{ iptables_legacy_version.stderr }}"
+          - "xtables .so files - stdout {{: {{ xtables_files.stdout }} stderr: {{ xtables_files.stderr }}"
+          - "Rsyslog Version - stdout {{: {{ rsyslog_version.stdout }} stderr: {{ rsyslog_version.stderr }}"
+          - "Logrotate Version - stdout {{: {{ logrotate_version.stdout }} stderr: {{ logrotate_version.stderr }}"
+          - "Zlib Version - stdout {{: {{ zlib_version.stdout }} stderr: {{ zlib_version.stderr }}"
+          - "SSHD Info - stdout {{: {{ sshd_info.stdout }} stderr: {{ sshd_info.stderr }}"
+          - "Pid 1 link - stdout {{: {{ pid_1_exe.stdout }} stderr: {{ pid_1_exe.stderr }}"
+          - "Pip for Python2 - stdout {{: {{ pip2_exists.stdout }} stderr: {{ pip2_exists.stderr }}"
+          - "Pip for Python3 - stdout {{: {{ pip3_exists.stdout }} stderr: {{ pip3_exists.stderr }}"
+          
