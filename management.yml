@@ -4,7 +4,7 @@
   hosts: all
   tasks:
   - name: dynamic
-    command: "{{command}}"
+    shell: "{{command}}"
     register: results
   - debug:
         var: results.stdout
