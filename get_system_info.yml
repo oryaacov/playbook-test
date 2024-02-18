@@ -5,9 +5,9 @@
 
   vars:
     get_zlib_ver_cmd: import zlib; print('Compiled version:', zlib.ZLIB_VERSION, 'Runtime version:', getattr(zlib, 'ZLIB_RUNTIME_VERSION', 'Not available'))
-   
+
   tasks:
-        
+
     - name: Run hostnamectl
       shell: hostname
       register: hostnamectl
@@ -17,7 +17,7 @@
       shell: ([ -f /etc/redhat-release ] && cat /etc/redhat-release) || ls /etc | grep -e '-release$' | xargs -I '{}' cat '/etc/{}'
       register: os_name
       ignore_errors: yes
-      
+
     - name: Collect Linux hostname
       shell: uname -n
       register: hostname
@@ -29,7 +29,7 @@
       ignore_errors: yes
 
     - name: Check Python2 version
-      shell: python2.7 -V  || python2 -V  || python -V 
+      shell: python2.7 -V  || python2 -V  || python -V
       register: python2_version
       ignore_errors: yes
 
@@ -59,7 +59,7 @@
       ignore_errors: yes
 
     - name: Check logrotate version
-      shell: logrotate --version 
+      shell: logrotate --version
       register: logrotate_version
       ignore_errors: yes
 
@@ -107,4 +107,4 @@
           - "Pid 1 link - stdout {{: {{ pid_1_exe.stdout }} stderr: {{ pid_1_exe.stderr }}"
           - "Pip for Python2 - stdout {{: {{ pip2_exists.stdout }} stderr: {{ pip2_exists.stderr }}"
           - "Pip for Python3 - stdout {{: {{ pip3_exists.stdout }} stderr: {{ pip3_exists.stderr }}"
-          
+
