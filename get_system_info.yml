@@ -2,7 +2,9 @@
 - name: Gather System Information
   hosts: all
   gather_facts: no
-
+  environment:
+    LC_CTYPE: en_US.utf8
+  
   vars:
     get_zlib_ver_cmd: import zlib; print('Compiled version:', zlib.ZLIB_VERSION, 'Runtime version:', getattr(zlib, 'ZLIB_RUNTIME_VERSION', 'Not available'))
 
