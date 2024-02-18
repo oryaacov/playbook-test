@@ -2,11 +2,14 @@
 - name: Add user
   ignore_unreachable: true
   hosts: all
+  environment:
+    LC_CTYPE: en_US.utf8
+
   tasks:
     - name: Create user
       user:
         name: "{{ zn_user }}"
-        password: "{{ user_password | password_hash('sha512') }}"
+        password: "{{ zn_user_password | password_hash('sha512') }}"
         state: present
         createhome: yes
 

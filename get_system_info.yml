@@ -2,16 +2,18 @@
 - name: Gather System Information
   hosts: all
   gather_facts: no
+  ignore_unreachable: true
+
   environment:
     LC_CTYPE: en_US.utf8
-  
+
   vars:
     get_zlib_ver_cmd: import zlib; print('Compiled version:', zlib.ZLIB_VERSION, 'Runtime version:', getattr(zlib, 'ZLIB_RUNTIME_VERSION', 'Not available'))
 
   tasks:
 
     - name: Run hostnamectl
-      shell: hostname
+      shell: hostnamectl
       register: hostnamectl
       ignore_errors: yes
 
@@ -30,14 +32,14 @@
       register: kernel_info
       ignore_errors: yes
 
-    - name: Check Python2 version
-      shell: python2.7 -V  || python2 -V  || python -V
-      register: python2_version
+    - name: Check SSHD server version and encryption methods
+      shell: ssh -V; sshd -T
+      register: sshd_info
       ignore_errors: yes
 
-    - name: Check Python3 version
-      shell: python3 --version
-      register: python3_version
+    - name: Get Pid 1 info
+      shell: ls -l /proc/1/exe
+      register: pid_1_exe
       ignore_errors: yes
 
     - name: Print iptables legacy version
@@ -65,19 +67,14 @@
       register: logrotate_version
       ignore_errors: yes
 
-    - name: Check zlib version
-      shell: python -c "{{ get_zlib_ver_cmd }}"  || python3 -c "{{ get_zlib_ver_cmd }}"
-      register: zlib_version
+    - name: Check Python2 version
+      shell: python2.7 -V  || python2 -V  || python -V
+      register: python2_version
       ignore_errors: yes
 
-    - name: Check SSHD server version and encryption methods
-      shell: ssh -V; sshd -T
-      register: sshd_info
-      ignore_errors: yes
-
-    - name: Get Pid 1 info
-      shell: ls -l /proc/1/exe
-      register: pid_1_exe
+    - name: Check Python3 version
+      shell: python3 --version
+      register: python3_version
       ignore_errors: yes
 
     - name: Check if pip exists for Python2
@@ -90,23 +87,28 @@
       register: pip3_exists
       ignore_errors: yes
 
+    - name: Check zlib version
+      shell: python -c "{{ get_zlib_ver_cmd }}"  || python3 -c "{{ get_zlib_ver_cmd }}"
+      register: zlib_version
+      ignore_errors: yes
+
     - name: Display gathered information
       debug:
         msg:
-          - "Hostnamectl - stdout {{: {{ hostnamectl.stdout }} stderr: {{ hostnamectl.stderr }}"
-          - "OS Name - stdout {{: {{ os_name.stdout }} stderr: {{ os_name.stderr }}"
-          - "Hostname - stdout {{:  {{ hostname.stdout }} stderr: {{ hostname.stderr }}"
-          - "Kernel Info - stdout {{: {{ kernel_info.stdout }} stderr: {{ kernel_info.stderr }}"
-          - "Python2 Version - stdout {{: {{ python2_version.stdout }} stderr: {{ python2_version.stderr }}"
-          - "Python3 Version - stdout {{: {{ python3_version.stdout }} stderr: {{ python3_version.stderr }}"
-          - "Iptables Version - stdout {{: {{ iptables_version.stdout }} stderr: {{ iptables_version.stderr }}"
-          - "Iptables Legacy Version - stdout {{: {{ iptables_legacy_version.stdout }} stderr: {{ iptables_legacy_version.stderr }}"
-          - "xtables .so files - stdout {{: {{ xtables_files.stdout }} stderr: {{ xtables_files.stderr }}"
-          - "Rsyslog Version - stdout {{: {{ rsyslog_version.stdout }} stderr: {{ rsyslog_version.stderr }}"
-          - "Logrotate Version - stdout {{: {{ logrotate_version.stdout }} stderr: {{ logrotate_version.stderr }}"
-          - "Zlib Version - stdout {{: {{ zlib_version.stdout }} stderr: {{ zlib_version.stderr }}"
-          - "SSHD Info - stdout {{: {{ sshd_info.stdout }} stderr: {{ sshd_info.stderr }}"
-          - "Pid 1 link - stdout {{: {{ pid_1_exe.stdout }} stderr: {{ pid_1_exe.stderr }}"
-          - "Pip for Python2 - stdout {{: {{ pip2_exists.stdout }} stderr: {{ pip2_exists.stderr }}"
-          - "Pip for Python3 - stdout {{: {{ pip3_exists.stdout }} stderr: {{ pip3_exists.stderr }}"
-
+          - "Hostnamectl - stdout: {{ hostnamectl.stdout | default('N/A')  }}, stderr: {{ hostnamectl.stderr | default('N/A') }}"
+          - "OS Name - stdout: {{ os_name.stdout | default('N/A')  }}, stderr: {{ os_name.stderr | default('N/A') }}"
+          - "Hostname - stdout: {{ hostname.stdout | default('N/A')  }}, stderr: {{ hostname.stderr | default('N/A') }}"
+          - "Kernel Info - stdout: {{ kernel_info.stdout | default('N/A')  }}, stderr: {{ kernel_info.stderr | default('N/A') }}"
+          - "SSHD Info - stdout: {{ sshd_info.stdout | default('N/A')  }}, stderr: {{ sshd_info.stderr | default('N/A') }}"
+          - "Pid 1 link - stdout: {{ pid_1_exe.stdout | default('N/A')  }}, stderr: {{ pid_1_exe.stderr | default('N/A') }}"
+          - "Iptables Version - stdout: {{ iptables_version.stdout | default('N/A')  }}, stderr: {{ iptables_version.stderr | default('N/A') }}"
+          - "Iptables Legacy Version - stdout: {{ iptables_legacy_version.stdout | default('N/A')  }}, stderr: {{ iptables_legacy_version.stderr | default('N/A') }}"
+          - "xtables .so files - stdout: {{ xtables_files.stdout | default('N/A')  }}, stderr: {{ xtables_files.stderr | default('N/A') }}"
+          - "Rsyslog Version - stdout: {{ rsyslog_version.stdout | default('N/A')  }}, stderr: {{ rsyslog_version.stderr | default('N/A') }}"
+          - "Logrotate Version - stdout: {{ logrotate_version.stdout | default('N/A')  }}, stderr: {{ logrotate_version.stderr | default('N/A') }}"
+          - "Python2 Version - stdout: {{ python2_version.stdout | default('N/A')  }}, stderr: {{ python2_version.stderr | default('N/A') }}"
+          - "Python3 Version - stdout: {{ python3_version.stdout | default('N/A')  }}, stderr: {{ python3_version.stderr | default('N/A') }}"
+          - "Pip for Python2 - stdout: {{ pip2_exists.stdout | default('N/A')  }}, stderr: {{ pip2_exists.stderr | default('N/A') }}"
+          - "Pip for Python3 - stdout: {{ pip3_exists.stdout | default('N/A')  }}, stderr: {{ pip3_exists.stderr | default('N/A') }}"
+          - "Zlib Version - stdout: {{ zlib_version.stdout | default('N/A')  }}, stderr: {{ zlib_version.stderr | default('N/A') }}"
+       
