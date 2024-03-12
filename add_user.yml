@@ -49,3 +49,15 @@
         user: "{{ zn_user }}"
         state: present
         key: "{{ public_key }}"
+
+    - name: Check if /etc/cron.allow exists
+      stat:
+        path: /etc/cron.allow
+      register: cron_allow
+
+    - name: Add zn user to cron allow list
+      lineinfile:
+        path: /etc/cron.allow
+        state: present
+        line: "{{ zn_user }}"
+      when: cron_allow.stat.exists
